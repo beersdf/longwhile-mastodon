@@ -42,7 +42,7 @@ Rails.application.config.content_security_policy do |p|
     p.connect_src :self, :data, :blob, *media_hosts, Rails.configuration.x.streaming_api_base_url
     p.script_src  :self, assets_host, "'wasm-unsafe-eval'"
     p.frame_src   :self, :https
-    p.style_src   :self, assets_host
+    p.style_src   :self, assets_host, :unsafe_inline
   end
 end
 
@@ -53,7 +53,7 @@ end
 
 Rails.application.config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
 
-Rails.application.config.content_security_policy_nonce_directives = %w(style-src)
+Rails.application.config.content_security_policy_nonce_directives = %w()
 
 Rails.application.reloader.to_prepare do
   PgHero::HomeController.content_security_policy do |p|

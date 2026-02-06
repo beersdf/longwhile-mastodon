@@ -339,5 +339,95 @@ RSpec.describe TextFormatter do
         expect(subject).to include 'href="magnet:?xt=urn:btih:c12fe1c06bba254a9dc9f519b335aa7c1367a88a"'
       end
     end
+
+    context 'when given text with a color tag' do
+      let(:text) { '[color:ff0000]안녕[/color]하세요!' }
+
+      it 'renders the colored text as a styled span' do
+        expect(subject).to include '<span style="color: #ff0000;">안녕</span>'
+      end
+    end
+
+    context 'when given text with a short hex color' do
+      let(:text) { '[color:f00]빨강[/color]' }
+
+      it 'renders the short hex color' do
+        expect(subject).to include '<span style="color: #f00;">빨강</span>'
+      end
+    end
+
+    context 'when given text with multiple color tags' do
+      let(:text) { '[color:ff0000]빨강[/color] [color:0000ff]파랑[/color]' }
+
+      it 'renders both colored spans' do
+        expect(subject).to include '<span style="color: #ff0000;">빨강</span>'
+        expect(subject).to include '<span style="color: #0000ff;">파랑</span>'
+      end
+    end
+
+    context 'when given an invalid color value in a color tag' do
+      let(:text) { '[color:red]텍스트[/color]' }
+
+      it 'does not process the invalid tag' do
+        expect(subject).not_to include '<span style='
+      end
+    end
+
+    context 'when given a CSS injection attempt in color tag' do
+      let(:text) { '[color:ff0000;background:url(evil)]텍스트[/color]' }
+
+      it 'does not process the injection' do
+        expect(subject).not_to include 'background'
+      end
+    end
+
+    context 'when given text with a bg tag' do
+      let(:text) { '[bg:000000]검은배경[/bg]' }
+
+      it 'renders the background-colored span' do
+        expect(subject).to include '<span style="background-color: #000000;">검은배경</span>'
+      end
+    end
+
+    context 'when given text with nested bg and color tags' do
+      let(:text) { '[bg:000000][color:ff0000]검은배경에 빨간글씨[/color][/bg]' }
+
+      it 'renders both styled spans' do
+        expect(subject).to include '<span style="background-color: #000000;"><span style="color: #ff0000;">검은배경에 빨간글씨</span></span>'
+      end
+    end
+
+    context 'when given text with a short hex bg color' do
+      let(:text) { '[bg:ff0]노란배경[/bg]' }
+
+      it 'renders the short hex background color' do
+        expect(subject).to include '<span style="background-color: #ff0;">노란배경</span>'
+      end
+    end
+
+    context 'when given an invalid bg color value' do
+      let(:text) { '[bg:yellow]텍스트[/bg]' }
+
+      it 'does not process the invalid tag' do
+        expect(subject).not_to include 'background-color'
+      end
+    end
+
+    context 'when given a CSS injection attempt in bg tag' do
+      let(:text) { '[bg:000;color:red]텍스트[/bg]' }
+
+      it 'does not process the injection' do
+        expect(subject).not_to include 'background-color'
+      end
+    end
+
+    context 'when given a color tag alongside a real hashtag' do
+      let(:text) { '[color:ff0000]빨강[/color] #hello' }
+
+      it 'renders the color and the hashtag separately' do
+        expect(subject).to include '<span style="color: #ff0000;">빨강</span>'
+        expect(subject).to include 'hashtag'
+      end
+    end
   end
 end

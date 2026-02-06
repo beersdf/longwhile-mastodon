@@ -51,7 +51,7 @@ class TextFormatter
 
     if multiline?
       MastodonOTELTracer.in_span('TextFormatter#to_s simple_format') do
-        html = simple_format(html, {}, sanitize: false).delete("\n")
+        html = simple_format(html, {}, { sanitize: false }).delete("\n")
       end
     end
 
@@ -104,6 +104,12 @@ class TextFormatter
 
     # Hair Space로 감싼 텍스트 -> 파란색 (#1d9bf0)
     html = html.gsub(/\u200A([^\u200A\n<>]+)\u200A/, '<span style="color: #1d9bf0;">\1</span>')
+
+    # [color:hex]텍스트[/color] -> 사용자 지정 색상
+    html = html.gsub(/\[color:([0-9a-fA-F]{3,8})\](.*?)\[\/color\]/, '<span style="color: #\1;">\2</span>')
+
+    # [bg:hex]텍스트[/bg] -> 사용자 지정 배경색
+    html = html.gsub(/\[bg:([0-9a-fA-F]{3,8})\](.*?)\[\/bg\]/, '<span style="background-color: #\1;">\2</span>')
 
     html
   end

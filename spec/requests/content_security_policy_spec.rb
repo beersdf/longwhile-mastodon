@@ -33,7 +33,7 @@ RSpec.describe 'Content-Security-Policy' do
       manifest-src 'self' https://cb6e6126.ngrok.io
       media-src 'self' data: https://cb6e6126.ngrok.io
       script-src 'self' https://cb6e6126.ngrok.io 'wasm-unsafe-eval'
-      style-src 'self' https://cb6e6126.ngrok.io 'nonce-ZbA+JmE7+bK8F5qvADZHuQ=='
+      style-src 'self' https://cb6e6126.ngrok.io 'unsafe-inline'
       worker-src 'self' blob: https://cb6e6126.ngrok.io
     CSP
   end

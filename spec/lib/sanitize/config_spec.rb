@@ -77,5 +77,21 @@ RSpec.describe Sanitize::Config do
       mathml = '<math><semantics><msqrt><mi>x</mi></msqrt><annotation encoding="text/plain">sqrt(x)</annotation><annotation encoding="application/x-tex">\\sqrt x</annotation></semantics></math>'
       expect(Sanitize.fragment(mathml, subject)).to eq '$\sqrt x$'
     end
+
+    it 'keeps safe color style on span' do
+      expect(Sanitize.fragment('<span style="color: #ff0000;">빨강</span>', subject)).to eq '<span style="color: #ff0000;">빨강</span>'
+    end
+
+    it 'keeps safe background-color style on span' do
+      expect(Sanitize.fragment('<span style="background-color: #000000;">검정배경</span>', subject)).to eq '<span style="background-color: #000000;">검정배경</span>'
+    end
+
+    it 'removes unsafe CSS properties from style' do
+      expect(Sanitize.fragment('<span style="position: absolute;">위험</span>', subject)).to eq '<span>위험</span>'
+    end
+
+    it 'removes CSS injection attempts from style' do
+      expect(Sanitize.fragment('<span style="color: #ff0000; background-image: url(evil);">위험</span>', subject)).to eq '<span style="color: #ff0000;">위험</span>'
+    end
   end
 end

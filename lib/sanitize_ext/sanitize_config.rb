@@ -102,12 +102,30 @@ class Sanitize
       math.replace(math.document.create_text_node(annotation.text)) unless annotation.nil?
     end
 
+    SAFE_STYLE_TRANSFORMER = lambda do |env|
+      node = env[:node]
+      return unless node.element? && node['style']
+
+      safe_properties = node['style'].split(';').filter_map do |declaration|
+        prop, val = declaration.split(':', 2).map(&:strip)
+        next unless prop && val
+
+        "#{prop}: #{val};" if %w(color background-color).include?(prop) && /\A#[0-9a-fA-F]{3,8}\z/.match?(val)
+      end
+
+      if safe_properties.empty?
+        node.remove_attribute('style')
+      else
+        node['style'] = safe_properties.join(' ')
+      end
+    end
+
     MASTODON_STRICT = freeze_config(
       elements: %w(p br span a del s pre blockquote code b strong u i em ul ol li ruby rt rp),
 
       attributes: {
         'a' => %w(href rel class translate),
-        'span' => %w(class translate),
+        'span' => %w(class translate style),
         'ol' => %w(start reversed),
         'li' => %w(value),
       },
@@ -124,6 +142,7 @@ class Sanitize
       transformers: [
         ALLOWED_CLASS_TRANSFORMER,
         TRANSLATE_TRANSFORMER,
+        SAFE_STYLE_TRANSFORMER,
         MATH_TRANSFORMER,
         UNSUPPORTED_ELEMENTS_TRANSFORMER,
         UNSUPPORTED_HREF_TRANSFORMER,
