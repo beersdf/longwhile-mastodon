@@ -16,7 +16,7 @@ import { HotKeys } from 'react-hotkeys';
 
 import VisibilityIcon from '@/material-icons/400-24px/visibility.svg?react';
 import VisibilityOffIcon from '@/material-icons/400-24px/visibility_off.svg?react';
-import { Icon }  from 'mastodon/components/icon';
+import { Icon } from 'mastodon/components/icon';
 import { LoadingIndicator } from 'mastodon/components/loading_indicator';
 import { TimelineHint } from 'mastodon/components/timeline_hint';
 import ScrollContainer from 'mastodon/containers/scroll_container';
@@ -87,11 +87,11 @@ const makeMapStateToProps = () => {
   const mapStateToProps = (state, props) => {
     const status = getStatus(state, { id: props.params.statusId, contextType: 'detailed' });
 
-    let ancestorsIds   = [];
+    let ancestorsIds = [];
     let descendantsIds = [];
 
     if (status) {
-      ancestorsIds   = getAncestorsIds(state, status.get('in_reply_to_id'));
+      ancestorsIds = getAncestorsIds(state, status.get('in_reply_to_id'));
       descendantsIds = getDescendantsIds(state, status.get('id'));
     }
 
@@ -154,17 +154,19 @@ class Status extends ImmutablePureComponent {
     loadedStatusId: undefined,
   };
 
-  UNSAFE_componentWillMount () {
+  _scrolledToStatusId = null;
+
+  UNSAFE_componentWillMount() {
     this.props.dispatch(fetchStatus(this.props.params.statusId));
   }
 
-  componentDidMount () {
+  componentDidMount() {
     attachFullscreenListener(this.onFullScreenChange);
 
-    this._scrollStatusIntoView();
+    this._scrollIfReady();
   }
 
-  UNSAFE_componentWillReceiveProps (nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.params.statusId !== this.props.params.statusId && nextProps.params.statusId) {
       this.props.dispatch(fetchStatus(nextProps.params.statusId));
     }
@@ -459,7 +461,7 @@ class Status extends ImmutablePureComponent {
     }
   };
 
-  _selectChild (index, align_top) {
+  _selectChild(index, align_top) {
     const container = this.node;
     const element = container.querySelectorAll('.focusable')[index];
 
@@ -473,7 +475,7 @@ class Status extends ImmutablePureComponent {
     }
   }
 
-  renderChildren (list, ancestors) {
+  renderChildren(list, ancestors) {
     const { params: { statusId } } = this.props;
 
     return list.map((id, i) => (
@@ -498,39 +500,50 @@ class Status extends ImmutablePureComponent {
     this.statusNode = c;
   };
 
-  _scrollStatusIntoView () {
-    const { status, multiColumn } = this.props;
+  _scrollStatusIntoView() {
+    const { multiColumn } = this.props;
 
-    if (status) {
-      requestIdleCallback(() => {
-        this.statusNode?.scrollIntoView(true);
+    requestAnimationFrame(() => {
+      const node = this.statusNode;
+      if (!node) return;
 
-        // In the single-column interface, `scrollIntoView` will put the post behind the header,
-        // so compensate for that.
-        if (!multiColumn) {
-          const offset = document.querySelector('.column-header__wrapper')?.getBoundingClientRect()?.bottom;
-          if (offset) {
-            const scrollingElement = document.scrollingElement || document.body;
-            scrollingElement.scrollBy(0, -offset);
-          }
+      node.scrollIntoView(true);
+
+      // In the single-column interface, `scrollIntoView` will put the post behind the header,
+      // so compensate for that.
+      if (!multiColumn) {
+        const offset = document.querySelector('.column-header__wrapper')?.getBoundingClientRect()?.bottom;
+        if (offset) {
+          const scrollingElement = document.scrollingElement || document.body;
+          scrollingElement.scrollBy(0, -offset);
         }
-      });
-    }
+      }
+    });
+  }
+
+  _scrollIfReady() {
+    const { status, isLoading, params } = this.props;
+    const id = params?.statusId;
+
+    if (!status || isLoading) return;
+    if (this._scrolledToStatusId === id) return;
+
+    this._scrolledToStatusId = id;
+    this._scrollStatusIntoView();
   }
 
   componentDidUpdate(prevProps) {
-    const { status, ancestorsIds } = this.props;
+    const prevId = prevProps.params?.statusId;
+    const currId = this.props.params?.statusId;
 
-    // Only scroll when the router's statusId param actually changed,
-    // or when new ancestors were added (new replies loaded).
-    const statusIdChanged = this.props.params?.statusId !== prevProps.params?.statusId;
-
-    if (status && (ancestorsIds.length > prevProps.ancestorsIds.length || statusIdChanged)) {
-      this._scrollStatusIntoView();
+    if (prevId !== currId) {
+      this._scrolledToStatusId = null;
     }
+
+    this._scrollIfReady();
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     detachFullscreenListener(this.onFullScreenChange);
   }
 
@@ -544,18 +557,14 @@ class Status extends ImmutablePureComponent {
       return false;
     }
 
-    // Only scroll to focused post if navigating to a different statusId
-    const prevStatusId = prevRouterProps?.params?.statusId || prevRouterProps?.match?.params?.statusId;
-    const currStatusId = this.props.params?.statusId;
-
-    if (this.statusNode && currStatusId !== prevStatusId) {
-      return [0, this.statusNode.offsetTop];
-    }
-
+    // Scroll positioning for the focused status is handled deterministically
+    // by `_scrollIfReady` after the thread context has finished loading.
+    // Returning false here prevents react-router-scroll-4 from restoring a
+    // stale offset captured before ancestors were inserted into the DOM.
     return false;
   };
 
-  render () {
+  render() {
     let ancestors, descendants, remoteHint;
     const { isLoading, status, ancestorsIds, descendantsIds, intl, domain, multiColumn, pictureInPicture } = this.props;
     const { fullscreen } = this.state;
