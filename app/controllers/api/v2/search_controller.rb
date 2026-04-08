@@ -119,7 +119,7 @@ class Api::V2::SearchController < Api::BaseController
       base_params.merge!(
         korean_optimized: true,
         boost_korean_content: true,
-        expand_synonyms: truthy_param?(:expand_synonyms, default: true)
+        # expand_synonyms: truthy_param?(:expand_synonyms, default: true)  # 주석처리됨
       )
     end
 
@@ -134,7 +134,7 @@ class Api::V2::SearchController < Api::BaseController
   end
 
   def search_params
-    params.permit(:type, :offset, :min_id, :max_id, :account_id, :following, :expand_synonyms, :normalize_emojis)
+    params.permit(:type, :offset, :min_id, :max_id, :account_id, :following, :normalize_emojis) # :expand_synonyms 주석처리됨
   end
 
   def determine_effective_limit

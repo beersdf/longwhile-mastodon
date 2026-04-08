@@ -101,7 +101,26 @@ module MultiAccounts
     def ensure_refresh_token_valid!(token)
       raise Error.new('Invalid refresh token', status: 401) unless token
       raise Error.new('Refresh token has been revoked', status: 401) if token.revoked?
-      raise Error.new('Token is not long-lived', status: 422) unless token.long_lived_refresh?
+
+      # 구버전에서 생성된 토큰이 long_lived/purpose 플래그 없이 존재할 수 있다.
+      # multi_account 플래그가 있거나, multi_account 앱에서 생성된 토큰이면 자동 업그레이드한다.
+      unless token.long_lived_refresh?
+        ma_client_id = Rails.configuration.x.multi_account[:client_id].presence
+        is_multi_account_token = token.try(:multi_account) ||
+                                 (ma_client_id && token.application_id.present? &&
+                                  token.application_id == Doorkeeper::Application.find_by(uid: ma_client_id)&.id)
+
+        if is_multi_account_token
+          Rails.logger.info("[MultiAccount] Auto-upgrading token #{token.id} to long_lived_refresh (multi_account=#{token.try(:multi_account)}, app_id=#{token.application_id})")
+          updates = {}
+          updates[:long_lived] = true if token.respond_to?(:long_lived=)
+          updates[:purpose] = 'multi_account_refresh' if token.respond_to?(:purpose=)
+          updates[:multi_account] = true if token.respond_to?(:multi_account=) && !token.try(:multi_account)
+          token.update!(updates) if updates.present?
+        else
+          raise Error.new('Token is not a valid multi-account refresh token', status: 422)
+        end
+      end
     end
 
     def find_resource_owner(token)

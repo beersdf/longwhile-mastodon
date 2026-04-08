@@ -66,14 +66,32 @@ class SearchQueryTransformer < Parslet::Transform
     end
 
     def default_filter
+      account_id = @options[:current_account].id
+      following_ids = @options[:current_account].active_relationships.pluck(:target_account_id)
+      allowed_account_ids = following_ids + [account_id]
+
       {
         bool: {
           should: [
+            # PublicStatusesIndex: 나+팔로잉 유저의 public/unlisted 툿
             {
-              term: {
-                _index: PublicStatusesIndex.index_name,
+              bool: {
+                must: [
+                  {
+                    term: {
+                      _index: PublicStatusesIndex.index_name,
+                    },
+                  },
+                  {
+                    terms: {
+                      account_id: allowed_account_ids,
+                    },
+                  },
+                ],
               },
             },
+            # StatusesIndex: 나+팔로잉 유저가 작성한 모든 visibility 툿
+            # OR 나를 멘션/즐겨찾기/북마크한 툿
             {
               bool: {
                 must: [
@@ -82,12 +100,20 @@ class SearchQueryTransformer < Parslet::Transform
                       _index: StatusesIndex.index_name,
                     },
                   },
+                ],
+                should: [
+                  {
+                    terms: {
+                      account_id: allowed_account_ids,
+                    },
+                  },
                   {
                     term: {
-                      searchable_by: @options[:current_account].id,
+                      searchable_by: account_id,
                     },
                   },
                 ],
+                minimum_should_match: 1,
               },
             },
           ],

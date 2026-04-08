@@ -85,14 +85,14 @@ class StatusesSearchService < BaseService
             }
           },
 
-          # 3. 동의어 확장 검색
-          {
-            multi_match: {
-              query: expand_synonyms(clean_query),
-              fields: ['text.content^1.5', 'text.social^1.2'],
-              type: 'phrase_prefix'
-            }
-          },
+          # 3. 동의어 확장 검색 - 주석처리됨
+          # {
+          #   multi_match: {
+          #     query: expand_synonyms(clean_query),
+          #     fields: ['text.content^1.5', 'text.social^1.2'],
+          #     type: 'phrase_prefix'
+          #   }
+          # },
 
           # 4. 해시태그 검색 (# 제거해서 검색)
           {
@@ -221,28 +221,29 @@ class StatusesSearchService < BaseService
           .strip
   end
 
-  def expand_synonyms(query)
-    return query if query.blank?
-
-    # 한국어 동의어 확장 (안전한 버전 - 단일 단어만)
-    synonyms = {
-      'ㅋㅋ' => '웃김 funny lol',
-      'ㅠㅠ' => '슬픔 sad crying',
-      'ㄷㄷ' => '대단 amazing wow',
-      '마스토돈' => 'mastodon 매스토돈',
-      '감사' => 'thanks 고마워',
-      '안녕' => 'hello hi bye',
-    }
-
-    expanded_query = query
-    synonyms.each do |original, expansion|
-      if expanded_query.include?(original)
-        expanded_query += " #{expansion}"
-      end
-    end
-
-    expanded_query
-  end
+  # expand_synonyms 주석처리됨
+  # def expand_synonyms(query)
+  #   return query if query.blank?
+  #
+  #   # 한국어 동의어 확장 (안전한 버전 - 단일 단어만)
+  #   synonyms = {
+  #     'ㅋㅋ' => '웃김 funny lol',
+  #     'ㅠㅠ' => '슬픔 sad crying',
+  #     'ㄷㄷ' => '대단 amazing wow',
+  #     '마스토돈' => 'mastodon 매스토돈',
+  #     '감사' => 'thanks 고마워',
+  #     '안녕' => 'hello hi bye',
+  #   }
+  #
+  #   expanded_query = query
+  #   synonyms.each do |original, expansion|
+  #     if expanded_query.include?(original)
+  #       expanded_query += " #{expansion}"
+  #     end
+  #   end
+  #
+  #   expanded_query
+  # end
 
   def detect_query_language(query)
     return 'unknown' if query.blank?

@@ -63,13 +63,13 @@ class Api::V1::MultiAccountsController < Api::BaseController
     begin
       updates = {}
       updates[:multi_account] = true if access_token.respond_to?(:multi_account=)
-      if MultiAccountConfig.refresh_flow_enabled?
-        updates[:purpose] = 'multi_account_refresh' if access_token.respond_to?(:purpose=)
-        updates[:long_lived] = true if access_token.respond_to?(:long_lived=)
-      end
+      updates[:purpose] = 'multi_account_refresh' if access_token.respond_to?(:purpose=)
+      updates[:long_lived] = true if access_token.respond_to?(:long_lived=)
       access_token.update!(updates) if updates.present?
+      Rails.logger.info("[MultiAccount] Token #{access_token.id} marked: multi_account=#{access_token.try(:multi_account)}, long_lived=#{access_token.try(:long_lived)}, purpose=#{access_token.try(:purpose)}")
     rescue StandardError => e
-      Rails.logger.warn("Failed to mark multi-account token #{access_token&.id}: #{e.message}")
+      Rails.logger.error("[MultiAccount] CRITICAL: Failed to mark token #{access_token&.id} with multi-account flags: #{e.message}")
+      Rails.logger.error(e.backtrace&.first(5)&.join("\n"))
     end
 
     resource_owner =

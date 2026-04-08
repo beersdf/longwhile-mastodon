@@ -5,14 +5,20 @@ class Api::V1::MultiAccounts::SessionsController < Api::BaseController
   skip_before_action :require_not_suspended!, only: :refresh
 
   def refresh
+    Rails.logger.info("[MultiAccount] refresh_flow_enabled?=#{MultiAccountConfig.refresh_flow_enabled?}, config=#{Rails.configuration.x.multi_account.to_h.except('client_secret')}")
+
     unless MultiAccountConfig.refresh_flow_enabled?
+      Rails.logger.warn('[MultiAccount] Refresh flow is DISABLED — check MA_MULTI_ACCOUNT_REFRESH_FLOW env var and config/settings.yml')
       render json: { error: 'Multi-account refresh flow is disabled' }, status: :forbidden
       return
     end
 
     # Check rollout eligibility
     refresh_token = Doorkeeper::AccessToken.by_token(refresh_token_param)
+
     if refresh_token
+      Rails.logger.info("[MultiAccount] Token found: id=#{refresh_token.id}, multi_account=#{refresh_token.try(:multi_account)}, long_lived=#{refresh_token.try(:long_lived)}, purpose=#{refresh_token.try(:purpose)}, revoked=#{refresh_token.revoked?}")
+
       user = if Doorkeeper.config.polymorphic_resource_owner?
                owner = refresh_token.respond_to?(:resource_owner) ? refresh_token.resource_owner : nil
                if owner.is_a?(User)
@@ -25,9 +31,12 @@ class Api::V1::MultiAccounts::SessionsController < Api::BaseController
              end
 
       if user && !MultiAccounts::Rollout.should_enable_for_user?(user)
+        Rails.logger.warn("[MultiAccount] User #{user.id} not eligible for rollout")
         render json: { error: 'This feature is not available for your account' }, status: :forbidden
         return
       end
+    else
+      Rails.logger.warn("[MultiAccount] Token NOT found by value (first 20 chars: #{refresh_token_param.to_s[0..20]})")
     end
 
     result = service.call

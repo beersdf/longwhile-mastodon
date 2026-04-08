@@ -118,20 +118,20 @@ class PublicStatusesIndex < Chewy::Index
         preserve_original: false,
       },
 
-      # 동의어 필터 - SNS 표현 통일
-      synonym_filter: {
-        type: 'synonym',
-        synonyms: [
-          'ㅋㅋ,ㅋㅋㅋ,kkk,lol,웃김,웃겨,funny',
-          'ㅠㅠ,ㅜㅜ,슬픔,sad,crying',
-          'ㄷㄷ,대단,amazing,wow,굿',
-          '마스토돈,mastodon,매스토돈',
-          '트위터,twitter,트윗',
-          'ok,오케이,좋아,굿',
-          '안녕하세요,안녕,hello,hi',
-          '감사합니다,감사,thank you,thanks,thx,고마워',
-        ],
-      },
+      # 동의어 필터 - SNS 표현 통일 - 주석처리됨
+      # synonym_filter: {
+      #   type: 'synonym',
+      #   synonyms: [
+      #     'ㅋㅋ,ㅋㅋㅋ,kkk,lol,웃김,웃겨,funny',
+      #     'ㅠㅠ,ㅜㅜ,슬픔,sad,crying',
+      #     'ㄷㄷ,대단,amazing,wow,굿',
+      #     '마스토돈,mastodon,매스토돈',
+      #     '트위터,twitter,트윗',
+      #     'ok,오케이,좋아,굿',
+      #     '안녕하세요,안녕,hello,hi',
+      #     '감사합니다,감사,thank you,thanks,thx,고마워',
+      #   ],
+      # },
 
       # 길이 기반 필터 - 너무 짧거나 긴 토큰 제거
       length_filter: {
@@ -230,6 +230,7 @@ class PublicStatusesIndex < Chewy::Index
       content: {
         char_filter: %w[emoji_normalizer url_normalizer mention_normalizer],
         tokenizer: 'nori_user_dict',
+        # synonym_filter 주석처리됨
         filter: %w[
           korean_pos_filter
           korean_readingform
@@ -238,7 +239,6 @@ class PublicStatusesIndex < Chewy::Index
           asciifolding_filter
           cjk_width_filter
           korean_stop
-          synonym_filter
           english_possessive_stemmer
           english_stop
           english_stemmer
@@ -263,6 +263,7 @@ class PublicStatusesIndex < Chewy::Index
       korean_only: {
         char_filter: %w[emoji_normalizer],
         tokenizer: 'nori_user_dict',
+        # synonym_filter 주석처리됨
         filter: %w[
           korean_pos_filter
           korean_readingform
@@ -270,7 +271,6 @@ class PublicStatusesIndex < Chewy::Index
           lowercase_filter
           cjk_width_filter
           korean_stop
-          synonym_filter
           length_filter
         ],
       },
@@ -293,10 +293,10 @@ class PublicStatusesIndex < Chewy::Index
       social_media: {
         char_filter: %w[emoji_normalizer url_normalizer mention_normalizer hashtag_cleaner],
         tokenizer: 'whitespace_tokenizer',
+        # synonym_filter 주석처리됨
         filter: %w[
           lowercase_filter
           cjk_width_filter
-          synonym_filter
           korean_stop
           english_stop
           length_filter
@@ -306,6 +306,7 @@ class PublicStatusesIndex < Chewy::Index
       # 검색 쿼리 전용 분석기 - 관대한 매칭
       search_query: {
         tokenizer: 'nori_user_dict',
+        # synonym_filter 주석처리됨
         filter: %w[
           korean_pos_filter
           korean_readingform
@@ -313,7 +314,6 @@ class PublicStatusesIndex < Chewy::Index
           lowercase_filter
           asciifolding_filter
           cjk_width_filter
-          synonym_filter
           english_possessive_stemmer
           length_filter
         ],

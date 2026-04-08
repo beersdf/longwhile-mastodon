@@ -8,23 +8,29 @@ raw_settings =
     {}
   end
 
-default_settings = { 'retain_tokens' => false, 'refresh_flow' => false }
+default_settings = { 'retain_tokens' => true, 'refresh_flow' => true }
 
+# config_for가 symbol/string 키를 혼용할 수 있으므로 양쪽 모두 시도
 multi_account_settings =
   case raw_settings
   when Hash
-    default_settings.merge(raw_settings.fetch('multi_account', {}))
+    ma_config = raw_settings.fetch('multi_account', nil) ||
+                raw_settings.fetch(:multi_account, nil) ||
+                {}
+    ma_config = ma_config.to_h if ma_config.respond_to?(:to_h) && !ma_config.is_a?(Hash)
+    default_settings.merge(ma_config.transform_keys(&:to_s))
   else
     default_settings.dup
   end
 
+# ENV에서 빈 문자열('')도 무시하도록 blank? 체크
 config_from_env = {
   'client_id' => ENV['MA_MULTI_ACCOUNT_CLIENT_ID'],
   'client_secret' => ENV['MA_MULTI_ACCOUNT_CLIENT_SECRET'],
   'redirect_uri' => ENV['MA_MULTI_ACCOUNT_REDIRECT_URI'],
   'retain_tokens' => ENV['MA_MULTI_ACCOUNT_RETAIN_TOKENS'],
   'refresh_flow' => ENV['MA_MULTI_ACCOUNT_REFRESH_FLOW'],
-}.compact
+}.reject { |_k, v| v.nil? || v.to_s.strip.empty? }
 
 merged_config = multi_account_settings.merge(config_from_env)
 
@@ -32,9 +38,11 @@ Rails.configuration.x.multi_account =
   ActiveSupport::HashWithIndifferentAccess.new(merged_config)
 
 boolean_cast = ActiveModel::Type::Boolean.new
-Rails.configuration.x.multi_account[:retain_tokens] =
-  boolean_cast.cast(Rails.configuration.x.multi_account[:retain_tokens]) || false
-Rails.configuration.x.multi_account[:refresh_flow] =
-  boolean_cast.cast(Rails.configuration.x.multi_account[:refresh_flow]) || false
+retain_raw = Rails.configuration.x.multi_account[:retain_tokens]
+retain_val = (retain_raw.is_a?(String) && retain_raw.strip.empty?) ? nil : boolean_cast.cast(retain_raw)
+Rails.configuration.x.multi_account[:retain_tokens] = retain_val.nil? ? true : retain_val
+refresh_raw = Rails.configuration.x.multi_account[:refresh_flow]
+refresh_val = (refresh_raw.is_a?(String) && refresh_raw.strip.empty?) ? nil : boolean_cast.cast(refresh_raw)
+Rails.configuration.x.multi_account[:refresh_flow] = refresh_val.nil? ? true : refresh_val
 
 raise 'Missing multi-account config: redirect_uri. Please set MA_MULTI_ACCOUNT_REDIRECT_URI environment variable or configure settings.' if Rails.configuration.x.multi_account[:redirect_uri].blank?
