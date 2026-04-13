@@ -1,4 +1,4 @@
-# 한참 인스턴스 (Mastodon Custom)
+# 한참 인스턴스 (Mastodon Custom) _유료구매완료
 
 > 자캐커뮤를 위한 특별한 마스토돈
 
